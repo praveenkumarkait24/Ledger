@@ -7,6 +7,7 @@ import {
   Film, Tag, ChevronDown, ChevronUp, Clock, CalendarDays, CalendarRange
 } from 'lucide-react';
 import jsPDF from 'jspdf';
+import { PRELOADED_EXPENSES } from './preloadData';
 import autoTable from 'jspdf-autotable';
 
 // ─── Storage ──────────────────────────────────────────────────────
@@ -163,7 +164,7 @@ const LoginPage = ({ onLogin }) => {
         if (form.password.length < 6) { setError('Password must be at least 6 characters'); return; }
         const hash = await hashPassword(form.password);
         const user = { id: genId(), name: form.name.trim(), email: form.email.toLowerCase() };
-        saveData({ user, passwordHash: hash, expenses: [] });
+        saveData({ user, passwordHash: hash, expenses: PRELOADED_EXPENSES });
         onLogin(user);
       } else {
         if (!data.user) { setError('No account found. Please register first.'); return; }
