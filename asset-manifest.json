@@ -1,19 +1,19 @@
 {
   "files": {
-    "main.css": "/Ledger/static/css/main.02c02e04.css",
-    "main.js": "/Ledger/static/js/main.eaa0392b.js",
-    "static/js/239.8c7e1b82.chunk.js": "/Ledger/static/js/239.8c7e1b82.chunk.js",
+    "main.css": "/Ledger/static/css/main.5c384f6f.css",
+    "main.js": "/Ledger/static/js/main.49deb7e1.js",
+    "static/js/239.aaa19bf9.chunk.js": "/Ledger/static/js/239.aaa19bf9.chunk.js",
     "static/js/213.b9d7536a.chunk.js": "/Ledger/static/js/213.b9d7536a.chunk.js",
     "static/js/732.f682d719.chunk.js": "/Ledger/static/js/732.f682d719.chunk.js",
     "index.html": "/Ledger/index.html",
-    "main.02c02e04.css.map": "/Ledger/static/css/main.02c02e04.css.map",
-    "main.eaa0392b.js.map": "/Ledger/static/js/main.eaa0392b.js.map",
-    "239.8c7e1b82.chunk.js.map": "/Ledger/static/js/239.8c7e1b82.chunk.js.map",
+    "main.5c384f6f.css.map": "/Ledger/static/css/main.5c384f6f.css.map",
+    "main.49deb7e1.js.map": "/Ledger/static/js/main.49deb7e1.js.map",
+    "239.aaa19bf9.chunk.js.map": "/Ledger/static/js/239.aaa19bf9.chunk.js.map",
     "213.b9d7536a.chunk.js.map": "/Ledger/static/js/213.b9d7536a.chunk.js.map",
     "732.f682d719.chunk.js.map": "/Ledger/static/js/732.f682d719.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.02c02e04.css",
-    "static/js/main.eaa0392b.js"
+    "static/css/main.5c384f6f.css",
+    "static/js/main.49deb7e1.js"
   ]
 }
