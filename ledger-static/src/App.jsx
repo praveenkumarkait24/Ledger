@@ -670,6 +670,19 @@ export default function App() {
   const [booting, setBooting] = useState(true);
 
   useEffect(()=>{
+    // Auto-inject 74 preloaded transactions into existing account
+    const data = loadData();
+    if (data.user && (!data.expenses || data.expenses.length === 0)) {
+      saveData({ ...data, expenses: PRELOADED_EXPENSES });
+    }
+    // Also inject if expenses are less than preloaded (merge without duplicates)
+    if (data.user && data.expenses) {
+      const existingIds = new Set(data.expenses.map(e => e.id));
+      const toAdd = PRELOADED_EXPENSES.filter(e => !existingIds.has(e.id));
+      if (toAdd.length > 0) {
+        saveData({ ...data, expenses: [...data.expenses, ...toAdd] });
+      }
+    }
     const session = sessionStorage.getItem('ledger_session');
     if(session){ try{ setUser(JSON.parse(session)); }catch{} }
     setBooting(false);
