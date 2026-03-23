@@ -9,15 +9,11 @@ import {
 import jsPDF from 'jspdf';
 import { PRELOADED_EXPENSES } from './preloadData';
 import autoTable from 'jspdf-autotable';
+import { loginUser, registerUser, logoutUser, getUserExpenses, addExpense, deleteExpense, seedExpenses } from './api';
 
-// ─── Storage ──────────────────────────────────────────────────────
-const STORAGE_KEY = 'ledger_data';
-const loadData = () => { try { const r = localStorage.getItem(STORAGE_KEY); return r ? JSON.parse(r) : { user: null, expenses: [] }; } catch { return { user: null, expenses: [] }; } };
-const saveData = (d) => localStorage.setItem(STORAGE_KEY, JSON.stringify(d));
-
+// ─── Helpers ──────────────────────────────────────────────────────
 const todayStr = () => new Date().toISOString().split('T')[0];
 const genId = () => Date.now().toString(36) + Math.random().toString(36).slice(2);
-const hashPassword = async (pw) => { const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pw)); return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join(''); };
 
 const CAT = {
   Food:          { color: '#e67e22', tag: 'tag-food',          Icon: UtensilsCrossed },
@@ -156,24 +152,18 @@ const LoginPage = ({ onLogin }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault(); setLoading(true); setError('');
-    await new Promise(r=>setTimeout(r,300));
     try {
-      const data = loadData();
       if (mode === 'register') {
-        if (!form.name.trim()) { setError('Name is required'); return; }
-        if (form.password.length < 6) { setError('Password must be at least 6 characters'); return; }
-        const hash = await hashPassword(form.password);
-        const user = { id: genId(), name: form.name.trim(), email: form.email.toLowerCase() };
-        saveData({ user, passwordHash: hash, expenses: PRELOADED_EXPENSES });
+        if (!form.name.trim()) { setError('Name is required'); setLoading(false); return; }
+        if (form.password.length < 6) { setError('Password must be at least 6 characters'); setLoading(false); return; }
+        const user = await registerUser(form.name.trim(), form.email, form.password);
+        await seedExpenses(PRELOADED_EXPENSES);
         onLogin(user);
       } else {
-        if (!data.user) { setError('No account found. Please register first.'); return; }
-        if (data.user.email !== form.email.toLowerCase()) { setError('Invalid email or password'); return; }
-        const hash = await hashPassword(form.password);
-        if (data.passwordHash !== hash) { setError('Invalid email or password'); return; }
-        onLogin(data.user);
+        const user = await loginUser(form.email, form.password);
+        onLogin(user);
       }
-    } catch { setError('Something went wrong'); } finally { setLoading(false); }
+    } catch (err) { setError(err.message || 'Something went wrong'); } finally { setLoading(false); }
   };
 
   return (
@@ -286,11 +276,17 @@ const Dashboard = ({ user, onLogout }) => {
   const [addForm, setAddForm] = useState({ amount:'',category:'Food',manual_category:'',description:'',date:todayStr() });
   const [addState, setAddState] = useState('idle');
   const [addError, setAddError] = useState('');
+  const [fetchError, setFetchError] = useState('');
   const [showAll, setShowAll] = useState(false);
 
-  useEffect(()=>{ setExpenses(loadData().expenses||[]); },[]);
+  useEffect(()=>{
+    getUserExpenses().then(data=>setExpenses(data)).catch(err=>setFetchError(err.message||'Failed to load expenses'));
+  },[]);
 
-  const saveExp = (list) => { setExpenses(list); const d=loadData(); saveData({...d,expenses:list}); };
+  const handleDelete = async (id) => {
+    try { await deleteExpense(id); setExpenses(prev=>prev.filter(e=>e.id!==id)); }
+    catch (err) { setAddError(err.message||'Failed to delete expense'); }
+  };
 
   const filtered = useMemo(()=>{
     const d=new Date(); const today=todayStr();
@@ -329,14 +325,16 @@ const Dashboard = ({ user, onLogout }) => {
     if(!addForm.amount||parseFloat(addForm.amount)<=0){setAddError('Enter a valid amount');return;}
     if(addForm.category==='Others'&&!addForm.manual_category.trim()){setAddError('Specify the category name');return;}
     setAddState('saving'); setAddError('');
-    await new Promise(r=>setTimeout(r,400));
     const exp={id:genId(),amount:parseFloat(addForm.amount),category:addForm.category,
       manual_category:addForm.category==='Others'?addForm.manual_category.trim():null,
       description:addForm.description.trim(),date:addForm.date};
-    saveExp([exp,...expenses]);
-    setAddState('done');
-    setAddForm({amount:'',category:'Food',manual_category:'',description:'',date:todayStr()});
-    setTimeout(()=>setAddState('idle'),1500);
+    try {
+      await addExpense(exp);
+      setExpenses(prev=>[exp,...prev]);
+      setAddState('done');
+      setAddForm({amount:'',category:'Food',manual_category:'',description:'',date:todayStr()});
+      setTimeout(()=>setAddState('idle'),1500);
+    } catch (err) { setAddError(err.message||'Failed to save expense'); setAddState('idle'); }
   };
 
   const FILTER_CARDS = [
@@ -433,6 +431,9 @@ const Dashboard = ({ user, onLogout }) => {
                     </div>
                   </div>
 
+                  {fetchError&&(
+                    <div style={{marginBottom:'14px',padding:'10px 14px',borderRadius:'8px',fontSize:'13px',background:'rgba(192,57,43,0.1)',border:'1px solid rgba(192,57,43,0.3)',color:'#e74c3c'}}>{fetchError}</div>
+                  )}
                   {filtered.length===0?(
                     <div style={{textAlign:'center',padding:'60px 0'}}>
                       <div style={{width:52,height:52,borderRadius:'16px',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 12px',background:'#2c2118',border:'1px solid rgba(212,168,83,0.12)'}}>
@@ -467,7 +468,7 @@ const Dashboard = ({ user, onLogout }) => {
                                 <p style={{fontFamily:'"JetBrains Mono","Courier New",monospace',fontSize:'15px',fontWeight:600,color:'#d4a853',flexShrink:0}}>
                                   ₹{exp.amount.toLocaleString('en-IN',{minimumFractionDigits:2})}
                                 </p>
-                                <motion.button onClick={()=>saveExp(expenses.filter(e=>e.id!==exp.id))}
+                                <motion.button onClick={()=>handleDelete(exp.id)}
                                   style={{padding:'6px',borderRadius:'6px',background:'rgba(192,57,43,0.1)',border:'1px solid rgba(192,57,43,0.2)',color:'#e74c3c',cursor:'pointer',flexShrink:0}}
                                   whileHover={{scale:1.08}} whileTap={{scale:0.92}}>
                                   <Trash2 size={12}/>
@@ -670,26 +671,13 @@ export default function App() {
   const [booting, setBooting] = useState(true);
 
   useEffect(()=>{
-    // Auto-inject 74 preloaded transactions into existing account
-    const data = loadData();
-    if (data.user && (!data.expenses || data.expenses.length === 0)) {
-      saveData({ ...data, expenses: PRELOADED_EXPENSES });
-    }
-    // Also inject if expenses are less than preloaded (merge without duplicates)
-    if (data.user && data.expenses) {
-      const existingIds = new Set(data.expenses.map(e => e.id));
-      const toAdd = PRELOADED_EXPENSES.filter(e => !existingIds.has(e.id));
-      if (toAdd.length > 0) {
-        saveData({ ...data, expenses: [...data.expenses, ...toAdd] });
-      }
-    }
     const session = sessionStorage.getItem('ledger_session');
     if(session){ try{ setUser(JSON.parse(session)); }catch{} }
     setBooting(false);
   },[]);
 
   const handleLogin = (u) => { sessionStorage.setItem('ledger_session',JSON.stringify(u)); setUser(u); };
-  const handleLogout = () => { sessionStorage.removeItem('ledger_session'); setUser(null); };
+  const handleLogout = () => { logoutUser(); sessionStorage.removeItem('ledger_session'); setUser(null); };
 
   if(booting) return (
     <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'#1a1410'}}>
