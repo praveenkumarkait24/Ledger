@@ -1,1 +1,28 @@
--- SQL Schema for Ledger Application\n\n-- Users Table\nCREATE TABLE users (\n    id SERIAL PRIMARY KEY,\n    username VARCHAR(255) NOT NULL UNIQUE,\n    email VARCHAR(255) NOT NULL UNIQUE,\n    password_hash VARCHAR(255) NOT NULL,\n    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP\n);\n\n-- Expenses Table\nCREATE TABLE expenses (\n    id SERIAL PRIMARY KEY,\n    user_id INTEGER NOT NULL,\n    amount DECIMAL(10, 2) NOT NULL,\n    description TEXT,\n    expense_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,\n    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE\n);\n\n-- Related Data Table (if needed, you can customize this)\nCREATE TABLE related_expenses (\n    id SERIAL PRIMARY KEY,\n    expense_id INTEGER NOT NULL,\n    related_expense_id INTEGER NOT NULL,\n    FOREIGN KEY (expense_id) REFERENCES expenses(id) ON DELETE CASCADE,\n    FOREIGN KEY (related_expense_id) REFERENCES expenses(id) ON DELETE CASCADE\n);\n
+-- SQL Schema for Ledger Application
+
+-- Users Table
+CREATE TABLE IF NOT EXISTS users (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Expenses Table
+CREATE TABLE IF NOT EXISTS expenses (
+    id VARCHAR(36) PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    amount DECIMAL(10, 2) NOT NULL,
+    category VARCHAR(50) NOT NULL DEFAULT 'Others',
+    manual_category VARCHAR(255),
+    description TEXT,
+    date DATE NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Indexes for faster lookups
+CREATE INDEX IF NOT EXISTS idx_expenses_user_id ON expenses(user_id);
+CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(date);
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
