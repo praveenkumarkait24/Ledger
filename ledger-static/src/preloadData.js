@@ -1,5 +1,4 @@
 export const PRELOADED_EXPENSES = [
-  { id:'pre001', amount:50.00,   category:'Food',          manual_category:null,              description:'',               date:'2026-03-26' },
   { id:'pre002', amount:100.00,  category:'Others',        manual_category:'Gold Investment', description:'Aura',           date:'2026-03-21' },
   { id:'pre003', amount:100.00,  category:'Entertainment', manual_category:null,              description:'Youth Movie',    date:'2026-03-19' },
   { id:'pre004', amount:74.00,   category:'Travel',        manual_category:null,              description:'Bus',            date:'2026-03-19' },
